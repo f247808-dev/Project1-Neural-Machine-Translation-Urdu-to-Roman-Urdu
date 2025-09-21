@@ -1,6 +1,9 @@
 import streamlit as st
 import torch
 from neural_machine_training import Encoder, Decoder, Seq2Seq
+import sys
+sys.path.append("/mount/src/project1-neural-machine-translation-urdu-to-roman-urdu/")
+from neural_machine_training import Encoder, Decoder, Seq2Seq
 
 # ------------------------------
 # Load model
