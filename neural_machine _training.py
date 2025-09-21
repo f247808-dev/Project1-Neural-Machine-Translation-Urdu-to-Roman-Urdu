@@ -22,7 +22,10 @@ with zipfile.ZipFile(zip_path, 'r') as zip_ref:
     zip_ref.extractall(extract_dir)
 
 print("✅ Files extracted to:", extract_dir)
-!ls dataset
+import os
+
+print("Files in dataset folder:", os.listdir("dataset"))
+
 
 import os
 
