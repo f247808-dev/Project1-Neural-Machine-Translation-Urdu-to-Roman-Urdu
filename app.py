@@ -9,10 +9,14 @@ import streamlit as st
 # Ensure neural_machine_training.py is found
 # -------------------------------
 current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(current_dir)
+if current_dir not in sys.path:
+    sys.path.append(current_dir)
 
-# Import your Seq2Seq modules
-from neural_machine_training import Encoder, Decoder, Seq2Seq
+try:
+    from neural_machine_training import Encoder, Decoder, Seq2Seq
+except ModuleNotFoundError:
+    st.error("neural_machine_training.py not found! Make sure it is in the same folder as app.py")
+    st.stop()
 
 # -------------------------------
 # Device configuration
