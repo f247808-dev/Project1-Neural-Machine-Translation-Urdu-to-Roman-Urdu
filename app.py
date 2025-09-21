@@ -4,6 +4,9 @@ import os
 import torch
 import torch.nn as nn
 import streamlit as st
+import os
+print("Current working directory:", os.getcwd())
+print("Files in current directory:", os.listdir())
 
 # -------------------------------
 # Automatically add subfolder to sys.path
