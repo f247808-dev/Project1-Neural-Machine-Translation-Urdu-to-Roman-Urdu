@@ -468,8 +468,6 @@ def compute_bleu(model, dataloader, urdu_tokenizer, roman_tokenizer, max_len=100
     bleu = corpus_bleu(references, hypotheses)
     return bleu
 
-!pip install editdistance
-import editdistance
 
 def compute_cer(model, dataloader, roman_tokenizer):
     model.eval()
