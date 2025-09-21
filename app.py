@@ -1,40 +1,95 @@
-import streamlit as st
-import torch
-from neural_machine_training import Encoder, Decoder, Seq2Seq
+# app.py
 import sys
-sys.path.append("/mount/src/project1-neural-machine-translation-urdu-to-roman-urdu/")
+import os
+import torch
+import torch.nn as nn
+import streamlit as st
+
+# -------------------------------
+# Ensure neural_machine_training.py is found
+# -------------------------------
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
+
+# Import your Seq2Seq modules
 from neural_machine_training import Encoder, Decoder, Seq2Seq
 
-# ------------------------------
-# Load model
-# ------------------------------
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-INPUT_DIM = 5000
-OUTPUT_DIM = 5000
+# -------------------------------
+# Device configuration
+# -------------------------------
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+st.write(f"Using device: {device}")
 
-encoder = Encoder(INPUT_DIM).to(DEVICE)
-decoder = Decoder(OUTPUT_DIM).to(DEVICE)
-model = Seq2Seq(encoder, decoder, DEVICE).to(DEVICE)
+# -------------------------------
+# Model and hyperparameters
+# -------------------------------
+INPUT_DIM = 1000      # Example: size of Urdu vocab
+OUTPUT_DIM = 1000     # Example: size of Roman Urdu vocab
+ENC_EMB_DIM = 256
+DEC_EMB_DIM = 256
+HID_DIM = 512
+N_LAYERS = 2
+ENC_DROPOUT = 0.5
+DEC_DROPOUT = 0.5
 
-checkpoint_path = "checkpoints/seq2seq_epoch5.pt"
-try:
-    model.load_state_dict(torch.load(checkpoint_path, map_location=DEVICE))
+# Initialize encoder, decoder, and seq2seq
+encoder = Encoder(INPUT_DIM, ENC_EMB_DIM, HID_DIM, N_LAYERS, ENC_DROPOUT)
+decoder = Decoder(OUTPUT_DIM, DEC_EMB_DIM, HID_DIM, N_LAYERS, DEC_DROPOUT)
+model = Seq2Seq(encoder, decoder, device).to(device)
+
+# -------------------------------
+# Load trained model weights
+# -------------------------------
+checkpoint_path = os.path.join(current_dir, "checkpoints", "seq2seq_model.pt")
+if os.path.exists(checkpoint_path):
+    model.load_state_dict(torch.load(checkpoint_path, map_location=device))
     model.eval()
-    st.success("✅ Model loaded successfully")
-except:
-    st.warning("⚠️ No trained model found, using random weights")
+    st.success("Model loaded successfully!")
+else:
+    st.warning(f"Checkpoint not found at {checkpoint_path}. The app will not work without a trained model.")
 
-# ------------------------------
+# -------------------------------
+# Example vocab dictionaries
+# -------------------------------
+# Replace with your actual vocab mappings
+src_vocab = {'<unk>':0, 'میرا':1, 'نام':2, 'علی':3}
+trg_vocab = {0:'<unk>', 1:'Mera', 2:'naam', 3:'Ali'}
+
+# -------------------------------
+# Translation function
+# -------------------------------
+def translate(sentence, src_vocab, trg_vocab, max_len=50):
+    """
+    sentence: list of Urdu tokens
+    src_vocab, trg_vocab: dicts {word:index} and {index:word}
+    """
+    model.eval()
+    
+    src_indexes = [src_vocab.get(token, src_vocab['<unk>']) for token in sentence]
+    src_tensor = torch.LongTensor(src_indexes).unsqueeze(1).to(device)  # [seq_len, 1]
+    
+    with torch.no_grad():
+        outputs = model(src_tensor, trg=None, teacher_forcing_ratio=0)  # no teacher forcing
+    
+    trg_indexes = outputs.argmax(2).squeeze(1).tolist()
+    trg_tokens = [trg_vocab.get(idx, '<unk>') for idx in trg_indexes]
+    
+    return ' '.join(trg_tokens)
+
+# -------------------------------
 # Streamlit UI
-# ------------------------------
-st.title("Urdu → Roman Urdu Transliteration")
-st.write("Enter Urdu text below:")
+# -------------------------------
+st.title("Urdu → Roman Urdu Translator")
+st.write("Type your Urdu sentence below:")
 
-urdu_text = st.text_input("Input Urdu text:")
-if st.button("Transliterate"):
-    if urdu_text.strip() == "":
-        st.error("Please enter some Urdu text")
+user_input = st.text_area("Enter Urdu text here:")
+
+if st.button("Translate"):
+    if not user_input.strip():
+        st.warning("Please enter a sentence to translate.")
     else:
-        # TODO: Replace with tokenizer + model prediction
-        roman_text = "demo_output"  # placeholder
-        st.success(f"Roman Urdu: {roman_text}")
+        # Simple whitespace tokenizer, replace with your tokenizer if needed
+        tokens = user_input.strip().split()
+        translation = translate(tokens, src_vocab, trg_vocab)
+        st.subheader("Roman Urdu Translation:")
+        st.write(translation)
